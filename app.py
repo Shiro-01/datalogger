@@ -1,16 +1,30 @@
 from fastapi import FastAPI, Request
-import datetime
+from fastapi.responses import HTMLResponse
 
 app = FastAPI()
 
+# Store all received messages
+messages = []
+
 @app.post("/flight-data")
 async def receive_data(request: Request):
-    payload = await request.body()
-    timestamp = datetime.datetime.now().isoformat()
-    print(f"[{timestamp}] Received data:\n{payload.decode()}")
-    
-    # Optionally: save to file
-    with open("logged_data.txt", "ab") as f:
-        f.write(payload + b"\n")
+    body = await request.body()
+    message = body.decode("utf-8")
+    messages.append(message)
+    print(f"Received: {message}")
+    return {"status": "received"}
 
-    return {"status": "success"}
+@app.get("/", response_class=HTMLResponse)
+async def show_messages():
+    html = "<h2>Received Data Log</h2><ul>"
+    for msg in messages:
+        html += f"<li>{msg}</li>"
+    html += "</ul>"
+    
+    # Auto-refresh every 2 seconds
+    html += """
+        <script>
+            setTimeout(() => { location.reload(); }, 2000);
+        </script>
+    """
+    return html
